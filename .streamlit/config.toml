@@ -2,3 +2,6 @@
 headless = true
 enableXsrfProtection=false
 enableCORS=true
+
+[theme]
+primaryColor="#1d61cf"
