@@ -1,0 +1,287 @@
+# standard libraries
+import os
+import glob
+import argparse
+import logging
+from copy import copy
+from pathlib import Path
+
+# third-party libraries
+import pandas as pd
+import openpyxl
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
+from pydantic.v1.utils import deep_update
+
+########################################
+## need to have xlsxwriter installed  ##
+## -> pip install xlsxwriter          ##
+########################################
+
+
+def parse_args():
+    
+    """ Parse arguments from command line """
+
+    parser = argparse.ArgumentParser(description='Process the .xls files output by the AURA macro', add_help=True)
+
+    main_group = parser.add_argument_group('Main options')
+
+    main_group.add_argument('-i', '--input',
+                            required=True,
+                            metavar='INPUT_FOLDER',
+                            help='Path to input folder containing .xls files')
+    
+    main_group.add_argument('-o', '--output', 
+                            required=True, 
+                            metavar='OUTPUT_FOLDER', 
+                            help='Path to output folder')
+    
+    main_group.add_argument('-v', '--verbose', 
+                            action='count', 
+                            default=1,
+                            help='Verbose output')
+
+    args = parser.parse_args()
+
+    return args
+
+
+def check_output_folder(output_folder):
+
+    """ Create output folder if it does not exist """
+
+    out_path = Path(output_folder)
+    if not out_path.exists():
+        logging.info(f'- Output folder not found')
+        os.makedirs(out_path, exist_ok=True)
+        logging.info(f'- Output folder created: {out_path}')
+    return
+
+
+def get_sample_files(input_folder):
+    
+    """ Return a list of all .xls files presents in the input folder """
+    
+    input_folder = Path(input_folder)
+    return [f for f in glob.glob("*.xls", root_dir=f'{input_folder}{os.sep}')]
+
+
+def preprocess_sample_files(files_list, input_folder='.'):
+    
+    """ 
+    For each file extract the sample name, channel name and image number
+    and store the informations in a dictionnary.
+    """
+
+    files_dict = {}
+
+    for file in files_list:
+
+        # Rebuild path to file
+        path = os.path.join(input_folder, file)
+        
+        # split file name
+        f = file.split('_')
+
+        # Extract sample, channel and image from file name
+        sample = '_'.join(f[:-2])
+        channel = f[-1].replace('.xls','')
+        image = int(f[-2])
+
+        # make dictionnary from values
+        file_dict = {sample: { channel: {image: path}}}
+
+        # update main dictionnary
+        files_dict = deep_update(files_dict, file_dict)
+
+    return files_dict
+
+
+def merge_files(files_dict, output_folder='.'):
+  
+    """ 
+    For each sample, we create one sheet per channel.
+    For each channel, images tables gets merged together.
+    """
+
+    ### Merging files
+
+    # Loop over samples
+    for sample, channels in files_dict.items():
+
+        logging.info(f'- SAMPLE: {sample}')
+
+        # For each sample, create a file
+        file_name = os.path.join(output_folder, f"{sample}.xlsx")
+        writer = pd.ExcelWriter(file_name, engine='openpyxl')
+
+        # loop over channels
+        for channel, images_per_channel in channels.items():
+
+            logging.info(f'- CHANNEL: {channel}')
+
+            # create dataframe
+            channel_df = pd.DataFrame()
+
+            for image, filepath in images_per_channel.items():
+
+                # load data as dataframe
+                df = pd.read_csv(filepath, sep='\t', index_col='Slice')
+                df = pd.concat([df], keys=[f'image {image}'], names=[''], axis=1)
+
+                # concat dataframes from same sample and channel together
+                channel_df = pd.concat([channel_df, df], axis=1)
+
+                logging.info(f'- FILE: {filepath}')
+
+            # reorder top-level columns based on image number
+            channel_df = channel_df.sort_index(axis=1, level=[0], ascending=[True], inplace=False)
+            
+            # write dataframe in a seperate sheet (one per channel)
+            channel_df.to_excel(writer, sheet_name=channel, startrow=0 , startcol=5, index=True, header=True, na_rep='NaN')
+
+            ### Formatting file
+
+            # Get the xlsxwriter workbook and worksheet objects
+            workbook  = writer.book
+            worksheet = writer.sheets[channel]
+
+            # Rename F2 cell 
+            worksheet["F2"] = "Slice"
+
+            # Remove empty row created by pandas multiindex
+            worksheet.delete_rows(3)  
+
+        ### Saving file
+        workbook.save(file_name)
+
+    return
+
+
+def add_analyse(files_dict, output_folder='.', template_file='analysis_template.xlsx'):
+  
+    """
+    Re-open the sample files generated by merge_files() 
+    in each sheet, parse the analysis template allowing to measure
+    the "%Cell" and "H-score" based on image's count data
+    """
+
+    # Open the template file
+    template_rel_path = os.path.join(os.path.dirname(__file__), template_file)
+    template_wb = openpyxl.load_workbook(template_rel_path)
+    template_ws = template_wb.worksheets[0]
+
+    # calculate total number of rows and columns in template file
+    max_row = template_ws.max_row
+    max_col = template_ws.max_column
+
+    # loop over samples
+    for sample, channels in files_dict.items():
+
+        # loop over channels
+        for channel in channels:
+
+            # Open the destination excel file
+            sample_file = os.path.join(output_folder, f"{sample}.xlsx")
+
+            destination_wb = openpyxl.load_workbook(sample_file)
+            destination_ws = destination_wb[channel]
+
+            # copying the cell values from source excel file to destination excel file
+            for i in range (1, max_row + 1):
+                for j in range (1, max_col + 1):
+
+                    # reading cell value from template file
+                    template_cell = template_ws.cell(row = i, column = j)
+
+                    # destination cell
+                    destination_cell = destination_ws.cell(row = i, column = j)
+
+                    # copy cell value
+                    destination_cell.value = template_cell.value
+
+                    # copy cell style
+                    if template_cell.has_style:
+                        destination_cell.font = copy(template_cell.font)
+                        destination_cell.border = copy(template_cell.border)
+                        destination_cell.fill = copy(template_cell.fill)
+                        destination_cell.number_format = copy(template_cell.number_format)
+                        destination_cell.protection = copy(template_cell.protection)
+                        destination_cell.alignment = copy(template_cell.alignment)
+
+
+                # Resize columns 
+                dim_holder = DimensionHolder(worksheet=destination_ws)
+                
+                # columns covering analysis (A to D)
+                for col in range(1, 5):
+                    dim_holder[get_column_letter(col)] = ColumnDimension(destination_ws, min=col, max=col, width=15)
+                
+                # column used as separator (E)
+                for col in range(5, 6):
+                    dim_holder[get_column_letter(col)] = ColumnDimension(destination_ws, min=col, max=col, width=3)
+                destination_ws.column_dimensions = dim_holder
+
+                # columns covering images data (F to last one)
+                for col in range(6, destination_ws.max_column + 1):
+                    dim_holder[get_column_letter(col)] = ColumnDimension(destination_ws, min=col, max=col, width=12)
+               
+            # saving the destination excel file
+            destination_wb.save(str(sample_file))
+
+        logging.info(f'- saved: {sample_file}')
+
+    return
+
+
+def main(input_folder, output_folder, template_file=None):
+
+    logging.warning('##### PROCESS STARTED')
+
+    logging.warning('##### Retrieving .xls files in input folder')
+    logging.info(f'input folder: {input_folder}')
+    files = get_sample_files(input_folder)
+    logging.warning('- Step complete [1/4]')
+
+    logging.warning('##### Parsing files names')
+    files_dict = preprocess_sample_files(files, input_folder=input_folder)
+    logging.warning('- Step complete [2/4]')
+
+    logging.warning('##### Processing and merging files')
+    merge_files(files_dict, output_folder=output_folder)
+    logging.warning('- Step complete [3/4]')
+
+    logging.warning('##### Appending results and saving .xlsx files in output folder')
+    add_analyse(files_dict, output_folder=output_folder)
+    logging.warning('- Step complete [4/4]')
+
+    logging.warning('##### PROCESS COMPLETED')
+
+    return
+
+
+def wrapper_main():
+
+    # get arguments from command line
+    args = parse_args()
+    
+    input = args.input          # Folder containing input files
+    output = args.output        # Folder to store output files
+
+    # set verbosity & logging settings
+    args.verbose = 40 - (10*args.verbose) if args.verbose > 0 else 0
+    logging.basicConfig(level=args.verbose, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+    # create the output folder if not found
+    check_output_folder(output)
+
+    # main function processing files
+    main(input_folder=input, output_folder=output)
+
+    return
+
+
+if __name__ == '__main__':
+    
+    wrapper_main() 
