@@ -23,7 +23,7 @@ from pydantic.v1.utils import deep_update
 def get_input_configuration():
     
     st.subheader('Input format', anchor=False)
-    input_format = st.radio("input format", [".xls Files", ".zip Folder"], horizontal=True, label_visibility="hidden")
+    input_format = st.radio("Choose desired input format:", [".xls Files", ".zip Folder"], horizontal=True, label_visibility="visible")
 
     if input_format == '.zip Folder':
         st.info('Input a single **.zip folder** containing the **.xls files** obtained by running the **AURA macro** on your images')
@@ -33,7 +33,6 @@ def get_input_configuration():
     else:
         st.error('An error happened - please try again')
     
-    st.write('###')
     return input_format
 
 
@@ -347,11 +346,12 @@ def sidebar_howto():
     with st.sidebar:
         st.write('# **How to :blue[use] ?**')
         with st.expander('See explanations', expanded=False):
-            st.write('**1. Choose desired input format**')
-            st.write('**2. Upload your files accordingly**')
-            st.write('**3. Click on "Process files" to run the script**')
-            st.write('**4. Follow script progression**')
-            st.write('**5. Click on "Download" to get your results**')
+            st.write('**1. Provide an experiment name**')
+            st.write('**2. Choose desired input format**')
+            st.write('**3. Upload your files accordingly**')
+            st.write('**4. Click on "Process files" to run the script**')
+            st.write('**5. Follow script progression**')
+            st.write('**6. Click on "Download" to get your results**')
         st.divider()
     
     return
@@ -370,6 +370,11 @@ def rnascope():
     # Main header
     st.header(':blue[AURA Data Processing]', anchor=False, divider='grey')
 
+    st.subheader('Experiment name', anchor=False)
+    col1, col2 = st.columns([3,3])
+    with col1:
+        identifier = st.text_input('Provide an experiment name *(no whitespace)* :')
+
     # choose and filter file type to be processed
     input_format = get_input_configuration()
 
@@ -379,7 +384,7 @@ def rnascope():
     placeholder = st.empty()
     placeholder.button('Process files', disabled=True, key=12)
 
-    if uploaded_files:
+    if uploaded_files and identifier:
         
         process = placeholder.button('Process files', disabled=False, key=21, type="primary")
 
@@ -388,7 +393,7 @@ def rnascope():
             st.subheader('Progress', anchor=False)
 
             # create source dir to store files being processed
-            out_path = Path('source_dir/')
+            out_path = Path(f'{identifier}/')
             if not out_path.exists():
                 os.makedirs(out_path, exist_ok=True)
 
@@ -418,7 +423,8 @@ def rnascope():
             st.subheader('Results', anchor=False)
             
             # Add output files into a zip folder
-            with zipfile.ZipFile("directory.zip", mode="w") as archive:
+            result_filename = f"{identifier}.zip"
+            with zipfile.ZipFile(result_filename, mode="w") as archive:
                 for file_path in out_path.iterdir():
                     # add files to zip folder
                     archive.write(file_path, arcname=file_path.name)
@@ -429,11 +435,11 @@ def rnascope():
             os.removedirs(out_path)
 
             # download zipped folder containing output files
-            with open("directory.zip", "rb") as fp:
-                download = st.download_button(label='Download', data=fp, file_name='results.zip', mime="application/zip", type="primary")
+            with open(result_filename, "rb") as fp:
+                download = st.download_button(label='Download', data=fp, file_name=result_filename, mime="application/zip", type="primary")
 
             # remove zip folder to free space
-            os.remove("directory.zip")
+            os.remove(result_filename)
 
     return
 
