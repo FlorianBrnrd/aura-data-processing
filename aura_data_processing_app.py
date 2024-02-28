@@ -327,7 +327,7 @@ def add_analyse(files_dict, output_folder='.', template_file='analysis_template.
 
 def app_settings():
 
-    st.set_page_config(layout="wide", page_title='AURA Data Processor', page_icon='🔬')
+    st.set_page_config(layout="wide", page_title='AURA Data Processing', page_icon='🔬')
 
     hide_streamlit_style = """
                 <style>
@@ -368,7 +368,7 @@ def rnascope():
     sidebar_howto()
 
     # Main header
-    st.header(':blue[AURA Data Processor]', anchor=False, divider='grey')
+    st.header(':blue[AURA Data Processing]', anchor=False, divider='grey')
 
     # choose and filter file type to be processed
     input_format = get_input_configuration()
