@@ -1,5 +1,3 @@
-
-
 import io
 import os
 from pathlib import Path
@@ -7,14 +5,7 @@ from zipfile import ZipFile
 
 import streamlit as st
 import pandas as pd
-
 import CORE as funcs
-
-
-
-
-
-
 
 
 
@@ -74,7 +65,7 @@ def app_filename_handler(input_files):
 def process_file_input(exp_ID, input_format, input_data):
 
     # create source dir to store files being processed
-    funcs.create_directory(exp_ID)
+    #funcs.create_directory(exp_ID)
 
     # Process data based on user-input
     if input_format == '.zip Folder':
@@ -92,15 +83,54 @@ def process_file_input(exp_ID, input_format, input_data):
 
     # Process files attributes 
     files_attributes = funcs.build_files_attributes_dict(files_dict, channels_list=channels)
-    return files_attributes
+    return files_attributes, channels
 
 
+
+######################
+#   PROCESS OUTPUT   #
+######################
+
+
+def output_result(exp_ID, out_path):
+    
+    # Add output files into a zip folder
+    result_filename = f"{exp_ID}.zip"
+    with ZipFile(result_filename, mode="w") as archive:
+        for file_path in out_path.iterdir():
+            # add files to zip folder
+            archive.write(file_path, arcname=file_path.name)
+            # clean files once added to zip folder
+            os.remove(file_path)
+
+    # remove directory to free space 
+    os.removedirs(out_path)
+
+    # download zipped folder containing output files
+    with open(result_filename, "rb") as fp:
+        download = st.download_button(label='Download', data=fp, file_name=result_filename, mime="application/zip", type="primary")
+
+    # remove zip folder to free space
+    os.remove(result_filename)
+    return
+
+
+
+def download_file(filename):
+    
+    with open(filename, "rb") as filedata:
+        download = st.download_button(label='Download', data=filedata, file_name=filename, mime="application/vnd.openxmlformats-officedocument", type="primary")
+    
+    # remove file from server
+    os.remove(filename)
+    return
 
 
 
 ##############################
 #    WEB APP USER INPUT      #
 ##############################
+
 
 
 def get_input_experiment_ID():
@@ -120,10 +150,10 @@ def get_input_configuration():
     input_format = st.radio("Choose desired input format:", [".csv Files", ".zip Folder"], horizontal=True, label_visibility="visible")
 
     if input_format == '.zip Folder':
-        st.info('Input a single **.zip folder** containing the **.csv files** obtained by running the **AURA macro** on your images')
+        st.info('Input a single **.zip folder** containing **all** files output by the **AURA macro**.')
 
     elif input_format == '.csv Files':
-        st.info('Input the **.csv files** obtained by running the **AURA macro** on your images')
+        st.info('Input all the **.csv files** along with the **Analysis_Settings.txt** file output by the **AURA macro**')
     
     else:
         st.error('An error happened - please verify your files and try again')
@@ -156,6 +186,7 @@ def get_uploaded_files(input_format):
 ######################
 
 
+
 def app_settings():
 
     st.set_page_config(layout="wide", page_title='AURA Data Processing', page_icon='🔬')
@@ -171,6 +202,7 @@ def app_settings():
                 """
 
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+    return
 
 
 def sidebar_howto():
@@ -185,25 +217,19 @@ def sidebar_howto():
             st.write('**5. Follow script progression**')
             st.write('**6. Click on "Download" to get your results**')
         st.divider()
-    
     return
 
 
 def app_header():
-
     # Main header
     st.header(':blue[AURA Data Processing]', anchor=False, divider='grey')
-
-    
-
-    
+    return
 
 
 
 ###########################
 #       WEB APP MAIN      #
 ###########################
-
 
 
 
@@ -241,52 +267,17 @@ def aura_data_processor():
             
             st.subheader('Progress', anchor=False)
 
-            ## PROCESS FILES ##
-            processed_files = process_file_input(exp_ID, input_format, input_data=uploaded_files)
-
-
-
-
-
-
-
-
-
-
-
-
+            ## PROCESSING FILES AND FORMATTING OUTPUT FILE ##
+            files_attributes, channels = process_file_input(exp_ID, input_format, input_data=uploaded_files)
+            funcs.process(exp_ID, files_attributes)
             
-            # ## MERGE TABLES ##
-            # merge_files(processed_files, output_folder=out_path)
-
-            # ## PARSING ANALYSIS TEMPLATE ##
-            # add_analyse(processed_files, output_folder=out_path)
-
-            # ## DOWNLOAD FILES ##
-            # st.subheader('Results', anchor=False)
+            ## DOWNLOAD FILE ##
+            st.subheader('Results', anchor=False)
+            download_file(f'{exp_ID}.xlsx')
             
-            # # Add output files into a zip folder
-            # result_filename = f"{identifier}.zip"
-            # with zipfile.ZipFile(result_filename, mode="w") as archive:
-            #     for file_path in out_path.iterdir():
-            #         # add files to zip folder
-            #         archive.write(file_path, arcname=file_path.name)
-            #         # clean files once added to zip folder
-            #         os.remove(file_path)
-
-            # # remove directory to free space 
-            # os.removedirs(out_path)
-
-            # # download zipped folder containing output files
-            # with open(result_filename, "rb") as fp:
-            #     download = st.download_button(label='Download', data=fp, file_name=result_filename, mime="application/zip", type="primary")
-
-            # # remove zip folder to free space
-            # os.remove(result_filename)
-
+             
     return
 
         
 if __name__ == '__main__':
-
     aura_data_processor()

@@ -2,3 +2,5 @@ __pycache__
 readme.md
 ~$analysis_template.xlsx
 .DS_Store
+unused/
+CLI.py
