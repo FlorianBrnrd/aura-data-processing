@@ -62,7 +62,7 @@ def app_filename_handler(input_files):
 
 
 
-def process_file_input(exp_ID, input_format, input_data):
+def process_file_input(exp_ID, input_format, input_data, error_space):
 
     # create source dir to store files being processed
     #funcs.create_directory(exp_ID)
@@ -82,7 +82,7 @@ def process_file_input(exp_ID, input_format, input_data):
         st.stop()
 
     # Process files attributes 
-    files_attributes = funcs.build_files_attributes_dict(files_dict, channels_list=channels)
+    files_attributes = funcs.build_files_attributes_dict(files_dict, channels_list=channels, error_space=error_space)
     return files_attributes, channels
 
 
@@ -266,9 +266,10 @@ def aura_data_processor():
         if process:
             
             st.subheader('Progress', anchor=False)
-
+            
             ## PROCESSING FILES AND FORMATTING OUTPUT FILE ##
-            files_attributes, channels = process_file_input(exp_ID, input_format, input_data=uploaded_files)
+            error_space = st.empty()
+            files_attributes, channels = process_file_input(exp_ID, input_format, input_data=uploaded_files, error_space=error_space)
             funcs.process(exp_ID, files_attributes)
             
             ## DOWNLOAD FILE ##

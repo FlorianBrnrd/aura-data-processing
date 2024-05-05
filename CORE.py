@@ -94,41 +94,46 @@ def copy_from_template(template_ws, destination_ws, start_row, end_row, template
 #####################
 
 
-
 def get_channels_from_settings_file(uploaded_file):
     """ Parse channels present in settings file and returns it as a list """
     channels = []
+    
     for line in uploaded_file:
+
         if type(line) is bytes:
-            line = line.decode('utf-8')
+            line = line.decode('utf-8', 'backslashreplace')
+            
         if line.startswith('Channel'):
             match = re.match(r'(Channel [\d]: )(.+)$', line)
-            chanel = str(match.group(2))
-            channels.append(chanel)
+            channel = str(match.group(2)).strip()
+            channels.append(channel)
+
     return channels
 
 
-def build_files_attributes_dict(files_dict, channels_list):
+def build_files_attributes_dict(files_dict, channels_list, error_space):
     """ Input: a {filename : filedata} dictionnary"""
     
-
     # generate progress bar
     samples = len(files_dict)
     i = 0
     progress_bar = st.progress(0, text=f"Processing input files: [{i}/{samples}]")
     
     # processing files
+    errors = []
     files_attributes = {}
     for filename, filedata in files_dict.items():
         
         # use regex to process file names
-        matches = re.match(r'^(.+)_(\d)_(.+).csv$', filename)
+        matches = re.match(r'^(.+)_(.+).csv$', filename)
         sample = str(matches.group(1))
-        image = str(matches.group(2))
-        channel = str(matches.group(3))
+        channel = str(matches.group(2))
         
+        if channel not in channels_list:
+            errors.append((filename, channel))
+             
         # make dictionnary from values
-        file_dict = {sample: {image: {channel: filedata}}}
+        file_dict = {sample: {channel: filedata}}
 
         # update main dictionnary
         files_attributes = deep_update(files_attributes, file_dict)
@@ -136,6 +141,15 @@ def build_files_attributes_dict(files_dict, channels_list):
         # updating progress bar
         i += 1
         progress_bar.progress(i/samples, text=f'Processing input files: [{i}/{samples}]')
+        
+    
+    if errors:
+        string = [f'Found unknown channel [**{channel}**] in file: **{filename}**\n\n' for (filename, channel) in errors]
+        string = ''.join(string)
+        settings_chans = '| '.join(channels_list)
+        settings_chans = f'File **Analysis_settings.txt** specify the following channels: {settings_chans}'
+        string = string + settings_chans
+        error_space.error(string)
         
 
     # sort dict
@@ -148,7 +162,7 @@ def merge_image_channels(files_attributes, writer, file_name):
     """ For each image sample, merge corresponding channels together """
 
     # generate progress bar
-    samples = sum(len(v) for v in files_attributes.values())
+    samples = len(files_attributes)
     i = 0
     progress_bar = st.progress(0, text=f"Merging image channels: [{i}/{samples}]")
     
@@ -164,44 +178,38 @@ def merge_image_channels(files_attributes, writer, file_name):
     summary_sheet = writer.sheets['summary']
     
     # Loop over samples
-    for sample, _images in files_attributes.items():
+    for sample, channels_per_image in files_attributes.items():
         
-        # loop over channels
-        for image, channels_per_image in _images.items():
+        sheets.append(sample)
+        
+        # write filename to summary file and increment counter for next iteration
+        summary_sheet[f"A{counter}"] = sample
+        counter = counter + 1
+        
+        # store separate channel dataframes in list
+        image_dfs = []
+        for channel, filedata in channels_per_image.items():
+            df_length = len(filedata)
+            slices = [f'Slice_{i}' for i in range(1, df_length+1)]
+            filedata['Slice'] = slices
+            filedata = filedata.set_index('Slice')[['Count']]
+            filedata.columns = [channel]
+            image_dfs.append(filedata)
             
-            # rebuild image filename and appends to list
-            image_filename = f'{sample}_{image}'
-            sheets.append(image_filename)
-            
-            # write filename to summary file and increment counter for next iteration
-            summary_sheet[f"A{counter}"] = image_filename
-            counter = counter + 1
-            
-            # store separate channel dataframes in list
-            image_dfs = []
-            for channel, filedata in channels_per_image.items():
-                df_length = len(filedata)
-                slices = [f'Slice_{i}' for i in range(1, df_length+1)]
-                filedata['Slice'] = slices
-                filedata = filedata.set_index('Slice')[['Count']]
-                filedata.columns = [channel]
-                image_dfs.append(filedata)
-                
-                
-            # concat dataframes from same sample+channel, reorder columns based on names and store in dictionnary
-            df = pd.concat(image_dfs, axis=1)
-            df = df.reindex(sorted(df.columns), axis=1)
-            data[image_filename] = df
-            
-            # build dictionnary from channel names
-            file_channels[image_filename] = {f'Channel {i} (C{i})':col for i, col in enumerate(df.columns)}
-            
-            # write dataframe in a seperate sheet (one per channel)
-            df.to_excel(writer, sheet_name=image_filename, startrow=2, startcol=6, index=True, header=True, na_rep='NaN')
-            
-            # updating progress bar
-            i += 1
-            progress_bar.progress(i/samples, text=f'Merging image channels: [{i}/{samples}]')
+        # concat dataframes from same sample+channel, reorder columns based on names and store in dictionnary
+        df = pd.concat(image_dfs, axis=1)
+        df = df.reindex(sorted(df.columns), axis=1)
+        data[sample] = df
+        
+        # build dictionnary from channel names
+        file_channels[sample] = {f'Channel {i} (C{i})':col for i, col in enumerate(df.columns, start=1)}
+        
+        # write dataframe in a seperate sheet (one per channel)
+        df.to_excel(writer, sheet_name=sample, startrow=2, startcol=6, index=True, header=True, na_rep='NaN')
+        
+        # updating progress bar
+        i += 1
+        progress_bar.progress(i/samples, text=f'Merging image channels: [{i}/{samples}]')
             
     # save file
     workbook.save(file_name)
@@ -209,11 +217,9 @@ def merge_image_channels(files_attributes, writer, file_name):
     return sheets, data, file_channels
 
 
-
 ########################
 #  RNASCOPE ANALYSIS   #
 ########################
-
 
 
 def format_rnascope(writer, filename, sheets, template_file='template_sheet_final.xlsx'):
@@ -371,6 +377,20 @@ def parse_summary_template(writer, filename, sheets, file_channels=None, templat
                        template_start_col=2, template_end_col=4*n_channels, 
                        destination_start_col=2, destination_end_col=4*n_channels)
 
+    # Add channels name to summary header
+    chans = {}
+    for sample, channels in file_channels.items():
+        for channel, channel_name in channels.items():
+            chans[channel] = channel_name
+    
+    for n, (channel, name) in enumerate(chans.items(), start=0):
+        col = (4*n)+2
+        cell = destination_ws.cell(1, col)
+        cell.value = f'{channel}:'
+        col = (4*n)+3
+        cell = destination_ws.cell(1, col)
+        cell.value = name
+        
     # save file
     workbook.save(filename)
     return
