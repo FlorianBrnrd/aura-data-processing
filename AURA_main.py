@@ -1,7 +1,9 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+
 from aura_data_processing import aura_data_processor
 from homepage import display_informations
+from contact import contact_page
 
 def navigation_bar():
 
@@ -14,8 +16,8 @@ def navigation_bar():
         st.markdown('<div style="font-size: 24px; color:#1a62c7"><b>Navigation:<b></div>', unsafe_allow_html=True)
 
         page = option_menu('', menu_icon='',
-                           options=['Homepage', 'AURA data processing'],
-                           icons=['house-fill', 'caret-right-fill'],
+                           options=['Homepage', 'AURA data processing', 'Contact form'],
+                           icons=['house-fill', 'caret-right-fill', 'envelope-at-fill'],
                            styles=styles_settings)
     return page
 
@@ -53,6 +55,9 @@ def main():
 
     elif page == 'AURA data processing':
         aura_data_processor()
+
+    elif page == 'Contact form':
+        contact_page()
 
     return
 

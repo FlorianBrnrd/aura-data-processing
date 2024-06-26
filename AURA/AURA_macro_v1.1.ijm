@@ -21,9 +21,9 @@
 
 ///////////////////// Nucleus Segmentation Function/////////////////////////////////////
 function ApplyNucleiSegmentation() {
-////// function can be adjusted from the line below /////
 run("Duplicate...", "title=nuclei_QC");//For Quality control 
 selectImage(NucleusChannel);
+////// function can be adjusted from the line below /////
 run("Enhance Contrast", "saturated=0.35");
 run("Apply LUT");
 run("Mean...", "radius=2");
@@ -199,7 +199,8 @@ for (i = 1; i <= ChannelsTotal && i <= 15; i++) {
 /////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////// Nucleus Segmentation /////////////////////////////////////
- ApplyNucleiSegmentation();
+selectImage(NucleusChannel);
+ApplyNucleiSegmentation();
 /////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////// Voronoi-Based Cell Segmentation //////////////////////////
