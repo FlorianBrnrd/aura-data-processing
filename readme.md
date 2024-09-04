@@ -1,6 +1,5 @@
 # AURA Data Processing
 
-----
 
 This repository contains the source code for the companion web-app of the following paper:
 
@@ -36,7 +35,6 @@ The manuscript is available on [BioRxiv](https://www.biorxiv.org/content/10.1101
 
 &nbsp;
 
----------
 ## AURA
 
 AURA is a universal tool for automated RNAscope analysis for high-throughput applications.
@@ -51,7 +49,6 @@ These macros were developed by Jean Descarpentrie and Wilfried Souleyreau, for a
 
 &nbsp;
 
----------
 
 ## Companion Web-application  [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aura-data-processing.streamlit.app)
 
@@ -76,7 +73,6 @@ For more details on how to execute a streamlit app locally, see Streamlit docume
 
 &ensp;
 
----
 ## CLI version of the script
 
 Additionally, we provide a Command Line Interface (CLI) version of the web-app for processing your files locally.
@@ -117,7 +113,6 @@ optional arguments:
 
 &ensp;
 
----
 ## License
 
 The source code is licensed under the MIT License.
