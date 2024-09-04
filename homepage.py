@@ -2,10 +2,11 @@ import streamlit as st
 
 
 def show_title():
-    txt = '<span style="color:#1a62c7">AURA: Automated Universal RNAscope®️ Analysis for high-throughput applications</span>'
+    txt = '<span style="color:#1a62c7">AURA: Automated Universal RNA *in situ* Analysis for high-throughput applications</span>'
+
     txt2 = ('Jean Descarpentrie <sup>1,2*</sup>, Florian Bernard <sup>3*</sup>, Wilfried Souleyreau <sup>4*</sup>, '
             'Lucie Brisson <sup>4</sup>, Thomas Mathivet <sup>4</sup>, Ioannis S. Pateras <sup>5</sup>, '
-            'Océane C. B. Martin <sup>6</sup>, Teresa Frisan <sup>1,2**</sup>.')
+            'Océane C. B. Martin <sup>6</sup>, Maria Lopez Chiloexhes <sup>1,2</sup>, Teresa Frisan <sup>1,2**</sup>.')
 
     legend_html = f'<span style="font-size:140%;"><b>{txt}</b></span><br><span style="font-size:110%;">{txt2}</span>'
     st.markdown(legend_html, unsafe_allow_html=True)
@@ -32,16 +33,21 @@ def show_abstract():
 
     st.markdown('<span style="font-size:130%;color:#1a62c7"><br><b>Abstract:</b></span>', unsafe_allow_html=True)
 
-    abstract = ('Fluorescence-based in-situ hybridization methods such as RNAscope® technology enable highly '
-                'sensitive and specific visualization of individual RNA molecules (identified as a fluorescent speck) '
-                'within intact cells, thereby enabling precise spatial and cellular localization of RNA transcripts. '
-                'However, the manual analysis of images is time-consuming. Here, we present an open-source and '
-                'user-friendly tool to facilitate high-throughput applications. The protocol seamlessly integrates '
-                'automated processes, offering a universal solution for efficient transcriptomic analysis, '
-                'especially RNAscope® analysis in various biological contexts.')
+    abstract = ('Fluorescence-based *in situ* hybridization methods enable highly sensitive and specific visualization '
+                'of individual RNA molecules (identified as fluorescent specks) within intact cells, enabling precise '
+                'spatial and cellular localization of RNA transcripts. However, the manual analysis of images is '
+                'time-consuming. We developed a novel, open-source, user-friendly tool to facilitate high-throughput '
+                'applications for specks-like staining. The protocol seamlessly integrates automated processes, '
+                'offering a universal solution for efficient transcriptomic analysis in various biological contexts.')
 
     abstract_html = f'<span style="font-size:100%;">{abstract}</span>'
     st.markdown(abstract_html, unsafe_allow_html=True)
+
+
+def show_biorxiv():
+    url = 'https://www.biorxiv.org/content/10.1101/2024.06.28.601140v1'
+    biorxiv = f'<span style="font-size:100%;">See the manuscript on <b><a href="{url}">BioRxiv</a></b>.</span>'
+    st.markdown(biorxiv, unsafe_allow_html=True)
 
 
 def add_sidebar_footer():
@@ -61,6 +67,8 @@ def display_informations():
     show_affiliations()
 
     show_abstract()
+
+    show_biorxiv()
 
     add_sidebar_footer()
 

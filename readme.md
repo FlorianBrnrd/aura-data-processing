@@ -4,7 +4,7 @@
 
 This repository contains the source code for the companion web-app of the following paper:
 
-## AURA: Automated Universal RNAscope®️ Analysis for high-throughput applications.
+## AURA: Automated Universal RNA in situ Analysis for high-throughput applications.
 
 ### Authors
 
@@ -15,6 +15,7 @@ This repository contains the source code for the companion web-app of the follow
 - Thomas Mathivet <sup>4</sup>
 - Ioannis S. Pateras <sup>5</sup>
 - Océane C. B. Martin <sup>6</sup>
+- Maria Lopez Chiloexhes <sup>1,2</sup>
 - [Teresa Frisan <sup>1,2**</sup>](https://www.umu.se/en/research/groups/teresa-frisan/)
 
 
@@ -31,6 +32,7 @@ Technical contact: Wilfried Souleyreau
 *Equal contributions \
 **Correspondence: Teresa Frisan
 
+The manuscript is available on [BioRxiv](https://www.biorxiv.org/content/10.1101/2024.06.28.601140v1).
 
 &nbsp;
 
@@ -39,8 +41,13 @@ Technical contact: Wilfried Souleyreau
 
 AURA is a universal tool for automated RNAscope analysis for high-throughput applications.
 
-It comes as a FIJI macro (```AURA_macro_v1.1.ijm```) that you can directly download from the folder named ```AURA``` present in this repository.
-This macro was developed by Jean Descarpentrie and Wilfried Souleyreau, for any questions contact them directly.
+We have developed two FIJI macros: **AURA** and **AURA light**.
+
+**AURA** (```AURA_macro_v1.5.ijm```) performs a batch analysis, resulting in an .xlsx file containing the quantification results for all images in the selected folder. 
+
+**AURA light** (```AURA_Light_v5.ijm```) helps the users to quickly identify the parameters for the correct nuclear and dot segmentation for the analyzed tissue. This allows for rapid adjustment of parameters in case of erroneous segmentation. AURA light does not support batch analysis.
+
+These macros were developed by Jean Descarpentrie and Wilfried Souleyreau, for any questions contact them directly.
 
 &nbsp;
 

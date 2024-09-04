@@ -89,7 +89,7 @@ def cli_aura_data_processor(experiment_name, input_folder, output_folder, analys
     writer, filename = core.create_xlsx_file(experiment_name, output_folder=output_folder)
 
     logging.warning('##### MERGING CHANNEL DATA')
-    sheets, data, file_channels = core.merge_image_channels(files_attributes=files_attributes, channels_dict=channels,
+    sheets, data, file_channels, skipped = core.merge_image_channels(files_attributes=files_attributes, channels_dict=channels,
                                                             writer=writer, file_name=filename)
 
     logging.warning('##### DETERMINING TEMPLATES TO USE')

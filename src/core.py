@@ -105,6 +105,8 @@ def build_files_attributes_dict(files_dict: dict[str, pd.DataFrame], channels_li
 def merge_image_channels(files_attributes, channels_dict, writer, file_name, progress_bar=None, column_name='Count'):
     """ For each image sample, merge corresponding channels together """
 
+    skipped = []
+
     # generate progress bar
     samples = len(files_attributes)
     i = 0
@@ -126,15 +128,11 @@ def merge_image_channels(files_attributes, channels_dict, writer, file_name, pro
     # Loop over samples
     for sample, channels_per_image in files_attributes.items():
 
-        sheets.append(sample)
-
-        # write filename to summary file and increment counter for next iteration
-        summary_sheet[f"A{counter}"] = sample
-        counter = counter + 1
-
         # store separate channel dataframes in list
         image_dfs = []
+        channel_count = 0
         for channel, filedata in channels_per_image.items():
+            channel_count += 1
             df_length = len(filedata)
             slices = [f'Slice_{i}' for i in range(1, df_length+1)]
             filedata['Slice'] = slices
@@ -152,18 +150,28 @@ def merge_image_channels(files_attributes, channels_dict, writer, file_name, pro
                 c.append(key)
         df = df.reindex(c, axis=1)
 
-        data[sample] = df
-        file_channels[sample] = {channels_dict[col]: col for col in df.columns}
-
-        # write dataframe in a separate sheet (one per channel)
-        df.to_excel(writer, sheet_name=sample, startrow=2, startcol=6, index=True, header=True, na_rep='NaN')
-
         # updating progress bar
         if progress_bar:
             i += 1
             progress_bar.progress(i/samples, text=f'Merging image channels: [{i}/{samples}]')
 
+        # do not write files with only one channel
+        if channel_count < 2:
+            skipped.append(f'{sample}_{channel}.csv')
+            continue
+
+        data[sample] = df
+        file_channels[sample] = {channels_dict[col]: col for col in df.columns}
+        sheets.append(sample)
+
+        # write dataframe in a separate sheet (one per channel)
+        df.to_excel(writer, sheet_name=sample, startrow=2, startcol=6, index=True, header=True, na_rep='NaN')
+
+        # write filename to summary file and increment counter for next iteration
+        summary_sheet[f"A{counter}"] = sample
+        counter = counter + 1
+
     # save file
     workbook.save(file_name)
 
-    return sheets, data, file_channels
+    return sheets, data, file_channels, skipped

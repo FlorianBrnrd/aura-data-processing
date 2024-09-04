@@ -33,6 +33,7 @@ def get_copositivity_analysis_coordinates(analysis_type, n_channels):
 
 
 def get_copositivity_coordinates(n_channels):
+
     coordinates = {
         2: (10, 12),
         3: (11, 16),
@@ -40,7 +41,7 @@ def get_copositivity_coordinates(n_channels):
         5: (13, 40)
     }
 
-    return coordinates[n_channels]
+    return coordinates.get(n_channels, None)
 
 
 def get_summary_coordinates(n_channels):
@@ -51,7 +52,7 @@ def get_summary_coordinates(n_channels):
         5: (22, 48)
     }
 
-    return coordinates[n_channels]
+    return coordinates.get(n_channels, None)
 
 
 ########################
@@ -164,6 +165,11 @@ def parse_copositivity_template(writer, sheets, filename, file_channels, analysi
         # find number of channels used to determine columns to parse
         channels = file_channels[sheet]
         n_channels = len(channels)
+
+        if n_channels < 2:
+            step += 1
+            progress_bar.progress(step / steps, f'Parsing co-positivity template: [{step}/{steps}]')
+            continue
 
         col_start, col_end = get_copositivity_coordinates(n_channels)
 

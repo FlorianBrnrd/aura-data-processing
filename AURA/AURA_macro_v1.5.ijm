@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////// AURA: Automated Universal RNAscope® Analysis for high-throughput applications //////////////////////////////////////////////////////////////////////////////////////
+///////////////////// AURA: Automated Universal RNA in situ Analysis for high-throughput applications //////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////// AUTHORSHIP ////////////////////
@@ -117,22 +117,15 @@ ChannelNumber=newArray("2","3","4","5","6","7","8","9","10","11","12","13","14",
 ////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////// Create dialog for macro options ///////////////////////////
-Dialog.create("macro options");
+Dialog.create("Number of channels");
 Dialog.addMessage("Enter your settings here:");
-Dialog.addNumber("Expansion around nuclei for segmentation [µm]:", "0.1");
 Dialog.addChoice("Number of channels (including Nuclei staining channel)", ChannelNumber, ChannelNumber[0]);
-Dialog.addNumber("Minimum size threshold for dots detection [µm]", "0.1"); 
 Dialog.show();
-////////////////////////////////////////////////////////////////////////////////
-
-///////////////////// User inputs /////////////////////////////////////////////
-cell_size = Dialog.getNumber();
-dot_size = Dialog.getNumber();
 ChannelsTotal = Dialog.getChoice();
 ////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////// Dynamic dialog for channel options ///////////////////////
-Dialog.create("Channels options");
+Dialog.create("Channel names");
 Dialog.addMessage("Name your channels:");
 Dialog.addMessage("Do not use special characters"); 
 channelNames = newArray(); // To store the names of the channels
@@ -147,7 +140,6 @@ for (i = 1; i <= parseInt(ChannelsTotal); i++) {
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-
 ///////////////////// Nuclei channel designation ////////////////////////////////
 Dialog.create("Nucleus channel selection");
 Dialog.addChoice("Nucleus channel", channelNames, channelNames[0]);
@@ -155,15 +147,77 @@ Dialog.show();
 NucleusChannel = Dialog.getChoice();
 ////////////////////////////////////////////////////////////////////////////////
 
-///////////////////// Analysis settings save ///////////////////////////////////
-    for (i = 0; i < ChannelsTotal && i < 15; i++) {
-print("Channel " + (i + 1) + ": " + channelNames[i]);
+///////////////////// Nuclei expansion designation ////////////////////////////////
+Dialog.create("Nuclei expansion");
+Dialog.addNumber("Expansion around nuclei for segmentation [µm]:", "0.1");
+Dialog.show();
+cell_size = Dialog.getNumber();
+////////////////////////////////////////////////////////////////////////////////
+
+///////////////////// Select Channels for Analysis ///////////////////////////
+selectedChannels = newArray(); // Initialize the array to store selected channels
+
+Dialog.create("Select Channels for Analysis");
+Dialog.addMessage("Select the channels you want to analyze:");
+
+// Add checkboxes for each channel
+for (i = 0; i < channelNames.length; i++) {
+    Dialog.addCheckbox(channelNames[i], true); // Default to all checked
 }
-print("Expansion around nuclei [µm]: "+cell_size+"");
-print("Nuclei channel: "+NucleusChannel+"");
-print("Size exclusion of dot < "+dot_size+"");
+Dialog.show();
+
+// Get the user selections
+for (i = 0; i < channelNames.length; i++) {
+    if (Dialog.getCheckbox()) {
+        selectedChannels = Array.concat(selectedChannels, channelNames[i]); // Add the selected channel to the array
+    }
+}
+
+///////////////////// Minimum size threshold for each channel ///////////////////
+dotSizeArray = newArray(); // To store the minimum size thresholds for each channel
+Dialog.create("Dot Size Thresholds");
+Dialog.addMessage("Set minimum size threshold for dots detection [µm] for each channel:");
+
+for (i = 0; i < selectedChannels.length; i++) {
+    // Skip adding a threshold input for the Nucleus Channel
+    if (selectedChannels[i] != NucleusChannel) {
+        Dialog.addNumber("Channel " + selectedChannels[i] + " [µm]:", "0.1");
+    }
+}
+Dialog.show();
+
+for (i = 0; i < selectedChannels.length; i++) {
+    // Skip retrieving a threshold for the Nucleus Channel
+    if (selectedChannels[i] != NucleusChannel) {
+        dotSizeArray[i] = Dialog.getNumber(); // Store each channel's dot size threshold
+    } else {
+        dotSizeArray[i] = 0; // Set the threshold for the nucleus channel to 0 (or skip entirely based on your preference)
+    }
+}
+////////////////////////////////////////////////////////////////////////////////
+
+///////////////////// Analysis settings save ///////////////////////////////////
+for (i = 0; i < selectedChannels.length && i < 15; i++) {
+    print("Channel " + (i + 1) + ": " + selectedChannels[i]);
+    if (selectedChannels[i] != NucleusChannel) {
+        print("Minimum size dots [µm]: " + dotSizeArray[i]);
+    }
+    if (selectedChannels[i] == NucleusChannel) {
+        print("Nuclei channel: " + NucleusChannel + "");
+        print("Expansion around nuclei [µm]: " + cell_size + "");
+    }
+}
+
+baseFilename = "Analysis_Settings";
+filename = baseFilename + ".txt";
+fileCounter = 1;
+while (File.exists(input + filename)) {
+    filename = baseFilename + "_" + fileCounter + ".txt";
+    fileCounter++;
+}
+
 selectWindow("Log");
-saveAs("Text", Results_Folder_Path + "Analysis_Settings.txt");
+saveAs("Text", Results_Folder_Path + filename);
 run("Close");
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -244,42 +298,41 @@ saveAs("Tiff", QC_Folder_Path+replace(ori, ".tif", "_Nucleus_QC.tif"));
 /////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////// Dot Analysis //////////////////////////////////////////////
-for (i = 0; i < ChannelsTotal && i < 15; i++) {
-    if (channelNames[i] != NucleusChannel) {
+for (i = 0; i < selectedChannels.length && i < 15; i++) {
+    if (selectedChannels[i] != NucleusChannel) {
 
-        selectImage(channelNames[i]);
-        run("Duplicate...", "title=analyze_" + channelNames[i]);
+        selectImage(selectedChannels[i]);
+        run("Duplicate...", "title=analyze_" + selectedChannels[i]);
         
         ApplyDotSegmentation();
         
-        selectImage("analyze_" + channelNames[i]);
-        run("Analyze Particles...", "size=" + dot_size + "-Infinity show=Masks");
-        rename(channelNames[i] + "_mask");
-        run("Duplicate...", "title=" + channelNames[i] + "_1");
+        selectImage("analyze_" + selectedChannels[i]);
+        run("Analyze Particles...", "size=" + dotSizeArray[i] + "-Infinity show=Masks");
+        rename(selectedChannels[i] + "_mask");
+        run("Duplicate...", "title=" + selectedChannels[i] + "_1");
 
         nNuclei = roiManager("count");
         for (k = 1; k < nNuclei; k++) {
-            selectWindow(channelNames[i] + "_" + k);
+            selectWindow(selectedChannels[i] + "_" + k);
             roiManager("Select", k); 
             run("Analyze Particles...", "summarize");
-            rename(channelNames[i] + "_" + (k+1));
+            rename(selectedChannels[i] + "_" + (k + 1));
         }
 Table.deleteColumn("%Area");
 Table.deleteColumn("Average Size");
-//Table.deleteColumn("Total Area");
-saveAs("Results", Results_Folder_Path+replace(ori, ".tif", "_"+channelNames[i]+".csv")); //
+saveAs("Results", Results_Folder_Path+replace(ori, ".tif", "_"+selectedChannels[i]+".csv")); //
 run("Close");
 /////////////////////////////////////////////////////////////////////////////////
 
 
 ///////////////////// Dots Quality Control //////////////////////////////////////
-selectImage(channelNames[i] + "_mask");
+selectImage(selectedChannels[i] + "_mask");
 run("Select None");
 run("Create Selection");
-selectImage(channelNames[i]);
-run("Duplicate...", "title="+channelNames[i]+"_QC");
+selectImage(selectedChannels[i]);
+run("Duplicate...", "title="+selectedChannels[i]+"_QC");
 ApplyQualityControl();
-saveAs("Tiff", QC_Folder_Path+replace(ori, ".tif", "_"+channelNames[i]+"_QC.tif")); //
+saveAs("Tiff", QC_Folder_Path+replace(ori, ".tif", "_"+selectedChannels[i]+"_QC.tif")); //
     }
 }
 roiManager("Select", 0);

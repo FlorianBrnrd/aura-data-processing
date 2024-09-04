@@ -119,6 +119,8 @@ def output_result(experiment_name, out_path):
 
 def download_file(filename):
     st.subheader('Results', anchor=False)
+    # add warning to open file with libreoffice
+    st.info('*The resulting file **must be opened** using the open-source software **LibreOffice**.  \nObtain the latest version for your system at www.libreoffice.org*')
 
     with open(filename, "rb") as filedata:
         st.download_button(label='Download', data=filedata, file_name=filename,
@@ -147,7 +149,7 @@ def process_aura_files(experiment_name: str, input_format: str, uploaded_files: 
     writer, filename = core.create_xlsx_file(experiment_name, output_folder='.')
 
     # Merge AURA tables
-    sheets, data, file_channels = core.merge_image_channels(files_attributes, channels, writer, filename,
+    sheets, data, file_channels, skipped = core.merge_image_channels(files_attributes, channels, writer, filename,
                                                             progress_bar=True, column_name=analysis_column)
 
     # Determine if we add co-positivity_analysis
@@ -179,6 +181,13 @@ def process_aura_files(experiment_name: str, input_format: str, uploaded_files: 
     ### FORMATTING
     formatting.format_file(writer=writer, filename=filename, sheets=sheets, n_channels=len(channels),
                            progress_bar=True)
+
+    if skipped:
+        with st.expander('Errors while processing input data', expanded=True):
+            st.write('**:red[The following files could not be processed:]**')
+            for file in skipped:
+                st.markdown("- " + file)
+            st.write('**:red[Make sure their naming format is correct and there is at least two different channels per sample to merge.]**')
 
     #####################
     ## DOWNLOAD RESULTS
