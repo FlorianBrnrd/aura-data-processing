@@ -183,11 +183,17 @@ def process_aura_files(experiment_name: str, input_format: str, uploaded_files: 
                            progress_bar=True)
 
     if skipped:
-        with st.expander('Errors while processing input data', expanded=True):
-            st.write('**:red[The following files could not be processed:]**')
+        with st.expander('**Warning: potentially missing channels for the following files**', expanded=True):
+
+            st.write("*:red[The following samples appear to be missing one or more channels according to the "
+                     "input settings file.]*  \n*:red[Make sure files names were not altered and that every files "
+                     "output by the AURA macro were used as input.]*  \n*:red[Review the resulting file and reprocess "
+                     "data if necessary. If you think you have encountered a bug, please contact us.]*")
+
             for file in skipped:
                 st.markdown("- " + file)
-            st.write('**:red[Make sure their naming format is correct and there is at least two different channels per sample to merge.]**')
+
+
 
     #####################
     ## DOWNLOAD RESULTS

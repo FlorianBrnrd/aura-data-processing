@@ -105,7 +105,7 @@ def build_files_attributes_dict(files_dict: dict[str, pd.DataFrame], channels_li
 def merge_image_channels(files_attributes, channels_dict, writer, file_name, progress_bar=None, column_name='Count'):
     """ For each image sample, merge corresponding channels together """
 
-    skipped = []
+    warnings = []
 
     # generate progress bar
     samples = len(files_attributes)
@@ -149,19 +149,15 @@ def merge_image_channels(files_attributes, channels_dict, writer, file_name, pro
             if key in df.columns:
                 c.append(key)
         df = df.reindex(c, axis=1)
-
-        # updating progress bar
-        if progress_bar:
-            i += 1
-            progress_bar.progress(i/samples, text=f'Merging image channels: [{i}/{samples}]')
-
-        # do not write files with only one channel
-        if channel_count < 2:
-            skipped.append(f'{sample}_{channel}.csv')
-            continue
-
         data[sample] = df
         file_channels[sample] = {channels_dict[col]: col for col in df.columns}
+
+        # check if all channels are found
+        expected = len(channels_dict) - 1
+        found = len(file_channels[sample])
+        if found < expected:
+            warnings.append(sample)
+
         sheets.append(sample)
 
         # write dataframe in a separate sheet (one per channel)
@@ -171,7 +167,12 @@ def merge_image_channels(files_attributes, channels_dict, writer, file_name, pro
         summary_sheet[f"A{counter}"] = sample
         counter = counter + 1
 
+        # updating progress bar
+        if progress_bar:
+            i += 1
+            progress_bar.progress(i / samples, text=f'Merging image channels: [{i}/{samples}]')
+
     # save file
     workbook.save(file_name)
 
-    return sheets, data, file_channels, skipped
+    return sheets, data, file_channels, warnings
