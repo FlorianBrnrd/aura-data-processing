@@ -23,6 +23,7 @@ def get_copositivity_analysis_coordinates(analysis_type, n_channels):
             4: (35, 49),
             5: (43, 72),
             6: (51, 111)},
+
         'Area': {
             2: (13, 17),
             3: (18, 25),

@@ -40,7 +40,7 @@ def app_zipfile_handler(input_file: IO[bytes]) -> tuple[dict[str, DataFrame], di
         if name.endswith('.csv'):
             files_dict[name] = pd.read_csv(zip_file.open(file))
 
-        if name == 'Analysis_Settings.txt':
+        if name.startswith('Analysis_Settings') and name.endswith('.txt'):
             settings_file = zip_file.open(file)
             channels = core.get_channels_from_settings_file(settings_file)
 
