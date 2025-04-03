@@ -21,12 +21,14 @@ def get_copositivity_analysis_coordinates(analysis_type, n_channels):
             2: (19, 23),
             3: (27, 34),
             4: (35, 49),
-            5: (43, 72)},
+            5: (43, 72),
+            6: (51, 111)},
         'Area': {
             2: (13, 17),
             3: (18, 25),
             4: (23, 37),
-            5: (28, 57)}
+            5: (28, 57),
+            6: (33, 93)}
     }
 
     return analysis_coordinates[analysis_type][n_channels]
@@ -37,8 +39,9 @@ def get_copositivity_coordinates(n_channels):
     coordinates = {
         2: (10, 12),
         3: (11, 16),
-        4: (12, 25),
-        5: (13, 40)
+        4: (12, 25), # should be 24 maybe
+        5: (13, 40),
+        6: (14, 72),
     }
 
     return coordinates.get(n_channels, None)
@@ -46,10 +49,11 @@ def get_copositivity_coordinates(n_channels):
 
 def get_summary_coordinates(n_channels):
     coordinates = {
-        2: (10, 11),
-        3: (14, 18),
-        4: (18, 29),
-        5: (22, 48)
+        2: (10, 11), # 1 combination
+        3: (14, 18), # 4 combinations
+        4: (18, 29), # 11 combination
+        5: (22, 48), # 26 combinations
+        6: (26, 83) # 57 combinations
     }
 
     return coordinates.get(n_channels, None)
