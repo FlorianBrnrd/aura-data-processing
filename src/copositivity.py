@@ -40,7 +40,7 @@ def get_copositivity_coordinates(n_channels):
     coordinates = {
         2: (10, 12),
         3: (11, 16),
-        4: (12, 25), # should be 24 maybe
+        4: (12, 24),
         5: (13, 40),
         6: (14, 72),
     }
@@ -49,12 +49,13 @@ def get_copositivity_coordinates(n_channels):
 
 
 def get_summary_coordinates(n_channels):
+    # coordinates for parsing copoitivite columns in summary file
     coordinates = {
         2: (10, 11), # 1 combination
         3: (14, 18), # 4 combinations
         4: (18, 29), # 11 combination
         5: (22, 48), # 26 combinations
-        6: (26, 83) # 57 combinations
+        6: (26, 83) # 57 combinations    ## SHOULD BE GOOD
     }
 
     return coordinates.get(n_channels, None)

@@ -154,7 +154,7 @@ def process_aura_files(experiment_name: str, input_format: str, uploaded_files: 
 
     # Determine if we add co-positivity_analysis
     n_channels = max([len(i) for i in file_channels.values()])
-    add_copositivity = True if 1 < n_channels <= 6 else False
+    add_copositivity = True if 1 < n_channels < 7 else False
 
     # get templates
     summary_template, sheet_template = core.get_templates(n_channels=n_channels, analysis_type=analysis_column.lower())

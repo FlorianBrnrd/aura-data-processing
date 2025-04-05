@@ -42,7 +42,7 @@ def get_channels_from_settings_file(uploaded_file: st.file_uploader) -> dict[str
 
 def get_templates(n_channels, analysis_type):
 
-    if 1 < n_channels < 6:
+    if 1 < n_channels < 7:
         summary_template = f'templates/{analysis_type}/template_summary_{analysis_type}_{n_channels}channels.xlsx'
         sheet_template = f'templates/{analysis_type}/template_sheet_{analysis_type}_{n_channels}channels.xlsx'
     else:
@@ -73,7 +73,9 @@ def build_files_attributes_dict(files_dict: dict[str, pd.DataFrame], channels_li
         sample = str(matches.group(1)) if matches else None
         channel = str(matches.group(2)) if matches else None
 
-        if channel not in channels_list.keys():
+        channels = [i for i in channels_list.keys()]
+
+        if channel not in channels:
             errors.append((filename, channel))
 
         # make dictionary from values
