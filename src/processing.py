@@ -61,7 +61,7 @@ def app_filename_handler(input_files):
         if file.name.endswith('.csv'):
             files_dict[file.name] = pd.read_csv(file)
 
-        if file.name == 'Analysis_Settings.txt':
+        if file.name.startswith('Analysis_Settings') and file.name.endswith('.txt'):
             channels = core.get_channels_from_settings_file(file)
 
     return files_dict, channels
